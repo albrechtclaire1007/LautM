@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M oder m Spiel</title>
+    <style>
+        @font-face {
+            font-family: 'Schoulschreft';
+            src: url('https://github.com/albrechtclaire1007/schoulschreft/raw/main/schoulschreft_bold%5B2%5D.TTF') format('truetype');
+            font-weight: bold;
+        }
+        
+        body {
+            box-sizing: border-box;
+            font-family: 'Schoulschreft', Arial, sans-serif;
+            background-color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #2d5aa0;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            user-select: none;
+            cursor: pointer;
+        }
+        .toggle input {
+            width: 44px;
+            height: 24px;
+            appearance: none;
+            background: #ccc;
+            border-radius: 999px;
+            position: relative;
+            outline: none;
+            transition: background .2s ease;
+        }
+        .toggle input:checked {
+            background: #4a90e2;
+        }
+        .toggle input::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform .2s ease;
+        }
+        .toggle input:checked::after {
+            transform: translateX(20px);
+        }
+        
+        .drop-zones {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: center;
+            padding: 0 10px;
+        }
+        
+        .drop-box {
+            width: 45%;
+            max-width: 160px;
+            height: 200px;
+            border: 3px solid #4a90e2;
+            background: linear-gradient(145deg, #f8f9ff, #e8f2ff);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+        }
+        
+        .drop-box.drag-over {
+            background: linear-gradient(145deg, #fff2e6, #ffe6cc);
+            border-color: #ff9500;
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(255, 149, 0, 0.3);
+        }
+        
+        .drop-box h2 {
+            font-size: 2.5rem;
+            margin: 0 0 15px 0;
+            color: #4a90e2;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .dropped-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .word-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+        
+        .word-card {
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 80px;
+            border: 2px solid #333;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            touch-action: none;
+        }
+        
+        .word-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .word-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .word-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        
+        .feedback {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-height: 40px;
+        }
+        
+        .correct {
+            color: #2d5016;
+        }
+        
+        .incorrect {
+            color: #8b0000;
+        }
+        
+        @media (max-width: 768px) {
+            .word-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            
+            .word-card {
+                max-width: 70px;
+                padding: 6px;
+            }
+            
+            .feedback {
+                font-size: 1.2rem;
+                padding: 0 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">Sortiere die Wörter: M oder m?</h1>
+
+        <!-- AUDIO TOGGLE -->
+        <div class="toolbar">
+            <label class="toggle" title="Audio an/aus">
+                <input type="checkbox" id="audioToggle" checked>
+                <span>Ton an/aus</span>
+            </label>
+        </div>
+        
+        <div class="drop-zones">
+            <div class="drop-box" id="capital-m-box" data-type="capital">
+                <h2>M</h2>
+                <div class="dropped-items" id="capital-items"></div>
+            </div>
+            
+            <div class="drop-box" id="lowercase-m-box" data-type="lowercase">
+                <h2>m</h2>
+                <div class="dropped-items" id="lowercase-items"></div>
+            </div>
+        </div>
+        
+        <div class="word-cards" id="word-cards">
+            <!-- Word cards will be generated by JavaScript -->
+        </div>
+        
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <script>
+        // GAME DATA
+        const words = [
+            { word: 'Baum',   type: 'lowercase', image: 'https://i.postimg.cc/217JZxDR/baum.jpg' },
+            { word: 'Eimer',  type: 'lowercase', image: 'https://i.postimg.cc/FfF6gJrf/eimer.jpg' },
+            { word: 'Hammer', type: 'lowercase', image: 'https://i.postimg.cc/qtm5mMq1/hammer.jpg' },
+            { word: 'Kamm',   type: 'lowercase', image: 'https://i.postimg.cc/PpPF0s8T/kamm.jpg' },
+            { word: 'Mantel', type: 'capital',   image: 'https://i.postimg.cc/ph41HGD8/mantel.jpg' },
+            { word: 'Maus',   type: 'capital',   image: 'https://i.postimg.cc/N2XCf64n/maus.jpg' },
+            { word: 'Messer', type: 'capital',   image: 'https://i.postimg.cc/QVKybD3q/messer.jpg' }, // no audio provided (handled gracefully)
+            { word: 'Mila',   type: 'capital',   image: 'https://i.postimg.cc/Tp8HNs2v/mila.jpg' },
+            { word: 'Milch',  type: 'capital',   image: 'https://i.postimg.cc/0zPXPJJt/milch-neu.jpg' },
+            { word: 'Mond',   type: 'capital',   image: 'https://i.postimg.cc/KRnp654k/mond.jpg' },
+            { word: 'Schirm', type: 'lowercase', image: 'https://i.postimg.cc/fVC2LTcM/schirm.jpg' },
+            { word: 'Tomate', type: 'lowercase', image: 'https://i.postimg.cc/KKY9gSfB/tomate.jpg' }
+        ];
+
+        // AUDIO MAP (no 'messer.mp3' in your list; left undefined)
+        const audioSrc = {
+            Baum:   'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/baum.mp3',
+            Eimer:  'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/eimer.mp3',
+            Hammer: 'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/hammer.mp3',
+            Kamm:   'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/kamm.mp3',
+            Mantel: 'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/mantel.mp3',
+            Maus:   'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/maus.mp3',
+            Mila:   'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/mila.mp3',
+            Milch:  'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/milch.mp3',
+            Mond:   'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/mond.mp3',
+            Schirm: 'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/schirm.mp3',
+            Tomate: 'https://github.com/albrechtclaire1007/LautM/raw/refs/heads/main/tomate.mp3'
+        };
+
+        const audioPlayers = {};
+        let soundOn = true;
+
+        // Preload audio
+        for (const [word, src] of Object.entries(audioSrc)) {
+            const a = new Audio(src);
+            a.preload = 'auto';
+            audioPlayers[word] = a;
+        }
+
+        // Audio helpers
+        function playSound(word) {
+            if (!soundOn) return;
+            const a = audioPlayers[word];
+            if (!a) return; // no audio for this word (e.g., Messer)
+            try {
+                a.currentTime = 0;
+                a.play().catch(() => {});
+            } catch {}
+        }
+
+        // Drag & drop state
+        let draggedElement = null;
+        let correctPlacements = 0;
+        let touchStartPos = { x: 0, y: 0 };
+        let isDragging = false;
+
+        // Build cards
+        function createWordCards() {
+            const container = document.getElementById('word-cards');
+            
+            words.forEach((wordData, index) => {
+                const card = document.createElement('div');
+                card.className = 'word-card';
+                card.draggable = true;
+                card.dataset.word = wordData.word;
+                card.dataset.type = wordData.type;
+                card.dataset.index = index;
+                
+                card.innerHTML = `
+                    <img src="${wordData.image}" alt="${wordData.word}" class="word-image" onerror="this.style.display='none';">
+                `;
+
+                // Play audio on click/tap
+                card.addEventListener('click', () => playSound(wordData.word));
+
+                // Drag events
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                
+                // Touch support for mobile
+                card.addEventListener('touchstart', handleTouchStart, { passive: false });
+                card.addEventListener('touchmove', handleTouchMove, { passive: false });
+                card.addEventListener('touchend', handleTouchEnd, { passive: false });
+                
+                container.appendChild(card);
+            });
+        }
+
+        function handleDragStart(e) {
+            const card = e.target.closest('.word-card');
+            draggedElement = card;
+            card.classList.add('dragging');
+            // Optional: play audio when drag starts
+            playSound(card.dataset.word);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartPos = { x: touch.clientX, y: touch.clientY };
+            draggedElement = e.target.closest('.word-card');
+            draggedElement.classList.add('dragging');
+            isDragging = true;
+            // Play audio on touch start (acts like tap-to-hear too)
+            playSound(draggedElement.dataset.word);
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging || !draggedElement) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartPos.x;
+            const deltaY = touch.clientY - touchStartPos.y;
+            
+            draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1)`;
+            draggedElement.style.zIndex = '1000';
+        }
+
+        function handleTouchEnd(e) {
+            if (!isDragging || !draggedElement) return;
+            e.preventDefault();
+            
+            const touch = e.changedTouches[0];
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const dropBox = elementBelow ? elementBelow.closest('.drop-box') : null;
+            
+            // Reset transform
+            draggedElement.style.transform = '';
+            draggedElement.style.zIndex = '';
+            draggedElement.classList.remove('dragging');
+            
+            if (dropBox) {
+                // Simulate drop event
+                const mockEvent = {
+                    preventDefault: () => {},
+                    target: dropBox
+                };
+                handleDrop(mockEvent);
+            }
+            
+            isDragging = false;
+            draggedElement = null;
+        }
+
+        function setupDropZones() {
+            const dropBoxes = document.querySelectorAll('.drop-box');
+            
+            dropBoxes.forEach(box => {
+                box.addEventListener('dragover', handleDragOver);
+                box.addEventListener('drop', handleDrop);
+                box.addEventListener('dragenter', handleDragEnter);
+                box.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.closest('.drop-box').classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            if (!e.target.closest('.drop-box').contains(e.relatedTarget)) {
+                e.target.closest('.drop-box').classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropBox = e.target.closest('.drop-box');
+            dropBox.classList.remove('drag-over');
+            
+            if (!draggedElement) return;
+            
+            const wordType = draggedElement.dataset.type;
+            const boxType = dropBox.dataset.type;
+            const feedback = document.getElementById('feedback');
+            const word = draggedElement.dataset.word;
+            
+            // Create a smaller version for the drop zone (also clickable for audio)
+            const droppedCard = draggedElement.cloneNode(true);
+            droppedCard.style.width = '40px';
+            droppedCard.style.height = '40px';
+            droppedCard.style.padding = '2px';
+            droppedCard.draggable = false;
+            droppedCard.classList.remove('dragging');
+
+            // play sound when clicking the miniature too
+            droppedCard.addEventListener('click', () => playSound(word));
+            
+            if (wordType === boxType) {
+                // Correct placement
+                const targetContainer = dropBox.querySelector('.dropped-items');
+                targetContainer.appendChild(droppedCard);
+                draggedElement.remove();
+                correctPlacements++;
+                
+                feedback.textContent = `Richtig! "${word}" gehört hier hin!`;
+                feedback.className = 'feedback correct';
+                
+                if (correctPlacements === words.length) {
+                    setTimeout(() => {
+                        feedback.textContent = 'Fantastisch! Du hast alle Wörter richtig sortiert! 🎉';
+                        feedback.className = 'feedback correct';
+                    }, 1000);
+                }
+            } else {
+                // Incorrect placement
+                feedback.textContent = `Nicht ganz richtig. Versuche es nochmal mit "${word}".`;
+                feedback.className = 'feedback incorrect';
+            }
+            
+            // Clear feedback after 3 seconds
+            setTimeout(() => {
+                if (correctPlacements < words.length) {
+                    feedback.textContent = '';
+                    feedback.className = 'feedback';
+                }
+            }, 3000);
+        }
+
+        // AUDIO TOGGLE
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('audioToggle');
+            soundOn = toggle.checked;
+            toggle.addEventListener('change', () => {
+                soundOn = toggle.checked;
+            });
+
+            createWordCards();
+            setupDropZones();
+        });
+    </script>
+
+    <!-- Keep or remove this Cloudflare script block as needed -->
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'984b8436821a0b83',t:'MTc1ODgxMzc0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
